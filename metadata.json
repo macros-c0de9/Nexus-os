@@ -1,0 +1,6 @@
+{
+  "name": "AuraOS Web Desktop",
+  "description": "A feature-rich desktop Web OS with full window management, web app maker, file explorer with multi-window drag & drop, Linux terminal, media viewers, and customizable desktop.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

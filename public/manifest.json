@@ -1,0 +1,17 @@
+{
+  "name": "AuraOS Web Desktop",
+  "short_name": "AuraOS",
+  "description": "Modern Web OS Desktop Environment with App Maker, File System, Linux Terminal and Media Viewers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233b82f6'/%3E%3Cpath d='M30 35 L70 35 L70 45 L30 45 Z M30 50 L55 50 L55 60 L30 60 Z M30 65 L65 65 L65 75 L30 75 Z' fill='white'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
