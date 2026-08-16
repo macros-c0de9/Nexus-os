@@ -440,7 +440,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
       </div>
 
       {/* Window Body Container */}
-      <div className="flex-1 overflow-hidden relative bg-slate-950">
+      <div className="flex-1 overflow-hidden relative bg-slate-950 select-text">
         {children}
       </div>
 

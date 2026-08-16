@@ -12,6 +12,7 @@ import { WebBrowser } from '../apps/WebBrowser';
 import { SettingsApp } from '../apps/SettingsApp';
 import { TaskManager } from '../apps/TaskManager';
 import { Calculator } from '../apps/Calculator';
+import { YouTubeApp } from '../apps/YouTubeApp';
 
 export const WindowManager: React.FC = () => {
   const { windows, getAppDefinition } = useOS();
@@ -51,6 +52,8 @@ export const WindowManager: React.FC = () => {
             appTitle={win.title}
           />
         );
+      case 'youtube':
+        return <YouTubeApp />;
       case 'settings':
         return <SettingsApp />;
       case 'task-manager':

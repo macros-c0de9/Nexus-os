@@ -12,6 +12,7 @@ import {
 import { SYSTEM_APPS, PRESET_WALLPAPERS } from '../data/appsRegistry';
 import { vfs } from '../services/vfs';
 import { devicePermissions } from '../services/devicePermissions';
+import { soundService } from '../services/sound';
 
 const SETTINGS_KEY = 'aura_os_settings_v1';
 const CUSTOM_APPS_KEY = 'aura_os_custom_apps_v1';
@@ -537,6 +538,11 @@ export const OSProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       };
 
       setNotifications((prev) => [notif, ...prev.slice(0, 19)]);
+
+      // Play system chime
+      try {
+        soundService.playNotificationChime();
+      } catch {}
 
       // Deliver system notification if permitted
       if (devicePermissions) {

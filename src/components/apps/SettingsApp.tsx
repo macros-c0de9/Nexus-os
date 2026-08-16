@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOS } from '../../context/OSContext';
 import { PRESET_WALLPAPERS } from '../../data/appsRegistry';
 import { vfs } from '../../services/vfs';
 import { devicePermissions } from '../../services/devicePermissions';
+import { soundService } from '../../services/sound';
 import {
   Wallpaper,
   Layout,
@@ -19,15 +20,26 @@ import {
   Maximize2,
   Lock,
   Compass,
-  Monitor
+  Monitor,
+  Volume2,
+  VolumeX,
+  Volume1,
+  Headphones,
+  Play
 } from 'lucide-react';
 
 export const SettingsApp: React.FC = () => {
   const { settings, updateSettings, addNotification, openApp, snapWindow, windows } = useOS();
-  const [activeTab, setActiveTab] = useState<'wallpaper' | 'window-layouts' | 'storage' | 'gestures' | 'permissions' | 'about'>('wallpaper');
+  const [activeTab, setActiveTab] = useState<'wallpaper' | 'sound' | 'window-layouts' | 'storage' | 'gestures' | 'permissions' | 'about'>('wallpaper');
   const [customWallpaperInput, setCustomWallpaperInput] = useState('');
   const [wallpaperSuccess, setWallpaperSuccess] = useState(false);
   const [storageStats, setStorageStats] = useState(vfs.getStorageStats());
+  const [soundSettings, setSoundSettings] = useState(soundService.getSettings());
+
+  useEffect(() => {
+    const unsub = soundService.subscribe((s) => setSoundSettings(s));
+    return unsub;
+  }, []);
 
   const handleApplyCustomWallpaper = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +99,18 @@ export const SettingsApp: React.FC = () => {
           >
             <Wallpaper className="w-4 h-4 flex-shrink-0" />
             <span>Wallpaper & Display</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sound')}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium w-full text-left transition-all ${
+              activeTab === 'sound'
+                ? 'bg-blue-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Volume2 className="w-4 h-4 flex-shrink-0" />
+            <span>Sound & Volume</span>
           </button>
 
           <button
@@ -241,6 +265,122 @@ export const SettingsApp: React.FC = () => {
           </div>
         )}
 
+        {/* Tab: Sound & Volume Control */}
+        {activeTab === 'sound' && (
+          <div className="space-y-6 max-w-2xl">
+            <div>
+              <h2 className="text-base font-bold text-white">Audio & Master Volume Control</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Configure master system output volume, synthesize sound effects, and mute alerts.
+              </p>
+            </div>
+
+            {/* Master Volume Slider Card */}
+            <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600/20 text-blue-400 rounded-xl">
+                    {soundSettings.isMuted ? (
+                      <VolumeX className="w-5 h-5 text-rose-400" />
+                    ) : soundSettings.masterVolume < 40 ? (
+                      <Volume1 className="w-5 h-5 text-blue-400" />
+                    ) : (
+                      <Volume2 className="w-5 h-5 text-blue-400" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-200">
+                      Master Audio Output Volume
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Controls all system sounds, notification chimes, and media playback.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => soundService.toggleMute()}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    soundSettings.isMuted
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {soundSettings.isMuted ? 'Muted (Click to Unmute)' : 'Active'}
+                </button>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Master Level</span>
+                  <span className="font-mono font-bold text-blue-400 text-sm">
+                    {soundSettings.isMuted ? '0% (Muted)' : `${soundSettings.masterVolume}%`}
+                  </span>
+                </div>
+                <input
+                  id="settings-master-volume-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={soundSettings.isMuted ? 0 : soundSettings.masterVolume}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    soundService.setMasterVolume(val);
+                    soundService.playTestChime(val);
+                  }}
+                  className="w-full h-2.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-slate-800"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <button
+                  id="btn-settings-test-audio-chime"
+                  onClick={() => soundService.playTestChime(soundSettings.masterVolume)}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-medium flex items-center gap-2 transition-colors shadow"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Play Test Chime</span>
+                </button>
+
+                <button
+                  onClick={() => soundService.playNotificationChime()}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Bell className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Test Notification Chord</span>
+                </button>
+              </div>
+            </div>
+
+            {/* System Sound Effects Toggle */}
+            <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  System UI Sound Synthesizer
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Play harmonic Web Audio chimes on window snapping, clicks, and notifications
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !soundSettings.systemSoundsEnabled;
+                  soundService.setSystemSoundsEnabled(next);
+                  if (next) soundService.playTestChime();
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  soundSettings.systemSoundsEnabled
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {soundSettings.systemSoundsEnabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tab 2: Multi-Window Snapping Layouts */}
         {activeTab === 'window-layouts' && (
           <div className="space-y-6 max-w-2xl">
@@ -323,7 +463,56 @@ export const SettingsApp: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Responsive Display-Calibrated Cursor Section */}
+              <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600/20 text-blue-400 rounded-xl">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-200">
+                        Dynamic Display-Calibrated Mouse Cursor
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Automatically detected when a mouse or trackpad device is connected. Size scales smoothly with screen resolution.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-full text-[10px] font-medium flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Active Auto-Scale
+                  </span>
+                </div>
+
+                {/* Place-Based Cursor Previews & Interactive Test Area */}
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    Interactive Place-Based Cursor States
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    <button className="p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-blue-500 transition-colors text-xs font-medium text-slate-200">
+                      Hover for <strong className="text-blue-400">Hand / Pointer</strong>
+                    </button>
+
+                    <input
+                      type="text"
+                      placeholder="Hover for I-Beam Text"
+                      className="p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-blue-500 text-xs text-slate-200 outline-none placeholder-slate-500 text-center"
+                    />
+
+                    <div className="window-drag-handle p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-amber-500/50 text-xs font-medium text-amber-300 flex items-center justify-center">
+                      Hover for <strong>Grab Hand</strong>
+                    </div>
+
+                    <button disabled className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs font-medium text-slate-500 opacity-60">
+                      Hover for <strong>Blocked</strong>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl flex items-start gap-3">
                 <div className="p-2 bg-blue-600/20 text-blue-400 rounded-xl flex-shrink-0">
                   <Monitor className="w-5 h-5" />
@@ -331,10 +520,11 @@ export const SettingsApp: React.FC = () => {
                 <div>
                   <h4 className="text-xs font-semibold text-slate-200">Computer Mouse Actions</h4>
                   <ul className="text-xs text-slate-400 mt-1.5 space-y-1 list-disc pl-4">
-                    <li>Left Click: Focus window, launch apps, drag titlebars</li>
-                    <li>Right Click: Open context menus on desktop, files, and taskbar</li>
-                    <li>Double Click: Open files in dedicated viewer (Text, PDF, Photo, Video)</li>
-                    <li>Drag & Drop: Transfer files between explorer windows and desktop</li>
+                    <li><strong>Arrow Pointer:</strong> General desktop surface and non-interactive backgrounds</li>
+                    <li><strong>Hand / Point:</strong> Buttons, links, desktop icons, taskbar items, and menus</li>
+                    <li><strong>I-Beam Text:</strong> Text inputs, search bars, text editor code, and terminal</li>
+                    <li><strong>Grab / Grasping:</strong> Window titlebars, moveable panes, and dragging items</li>
+                    <li><strong>Bidirectional Arrows:</strong> 8-way window borders and split screen handles</li>
                   </ul>
                 </div>
               </div>

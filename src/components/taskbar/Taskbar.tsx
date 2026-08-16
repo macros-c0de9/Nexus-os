@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOS } from '../../context/OSContext';
 import { DynamicIcon } from '../common/DynamicIcon';
 import { vfs } from '../../services/vfs';
+import { soundService } from '../../services/sound';
 import {
   LayoutGrid,
   Search,
   Layers,
   Volume2,
+  Volume1,
   VolumeX,
   Wifi,
   HardDrive,
   Calendar,
   Sparkles,
-  Maximize2
+  Maximize2,
+  Headphones,
+  Bell,
+  Sliders,
+  Play
 } from 'lucide-react';
 import { devicePermissions } from '../../services/devicePermissions';
 
@@ -35,7 +41,11 @@ export const Taskbar: React.FC = () => {
   const [timeStr, setTimeStr] = useState('');
   const [dateStr, setDateStr] = useState('');
   const [storageStats, setStorageStats] = useState(vfs.getStorageStats());
-  const [volumeMuted, setVolumeMuted] = useState(false);
+  
+  // Sound Service state
+  const [soundSettings, setSoundSettings] = useState(soundService.getSettings());
+  const [showVolumeFlyout, setShowVolumeFlyout] = useState(false);
+  const volumeFlyoutRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateTime = () => {
@@ -50,13 +60,27 @@ export const Taskbar: React.FC = () => {
     updateTime();
     const interval = setInterval(updateTime, 1000);
 
-    const unsub = vfs.subscribe(() => {
+    const unsubVfs = vfs.subscribe(() => {
       setStorageStats(vfs.getStorageStats());
     });
 
+    const unsubSound = soundService.subscribe((settings) => {
+      setSoundSettings(settings);
+    });
+
+    // Close flyout on outside click
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (volumeFlyoutRef.current && !volumeFlyoutRef.current.contains(e.target as Node)) {
+        setShowVolumeFlyout(false);
+      }
+    };
+    window.addEventListener('mousedown', handleGlobalClick);
+
     return () => {
       clearInterval(interval);
-      unsub();
+      unsubVfs();
+      unsubSound();
+      window.removeEventListener('mousedown', handleGlobalClick);
     };
   }, []);
 
@@ -80,6 +104,26 @@ export const Taskbar: React.FC = () => {
     }
   };
 
+  const handleVolumeChange = (newVal: number) => {
+    soundService.setMasterVolume(newVal);
+    soundService.playTestChime(newVal);
+  };
+
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundService.toggleMute();
+  };
+
+  const getVolumeIcon = () => {
+    if (soundSettings.isMuted || soundSettings.masterVolume === 0) {
+      return <VolumeX className="w-3.5 h-3.5 text-rose-400" />;
+    }
+    if (soundSettings.masterVolume < 40) {
+      return <Volume1 className="w-3.5 h-3.5 text-slate-300" />;
+    }
+    return <Volume2 className="w-3.5 h-3.5 text-blue-400" />;
+  };
+
   return (
     <div
       id="aura-taskbar"
@@ -96,6 +140,7 @@ export const Taskbar: React.FC = () => {
           onClick={(e) => {
             e.stopPropagation();
             toggleStartMenu();
+            setShowVolumeFlyout(false);
           }}
           className={`h-9 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-150 ${
             startMenuOpen
@@ -114,6 +159,7 @@ export const Taskbar: React.FC = () => {
           onClick={(e) => {
             e.stopPropagation();
             toggleStartMenu();
+            setShowVolumeFlyout(false);
           }}
           className="h-9 px-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors hidden sm:flex items-center gap-1.5"
           title="Search"
@@ -128,6 +174,7 @@ export const Taskbar: React.FC = () => {
           onClick={(e) => {
             e.stopPropagation();
             toggleTaskView();
+            setShowVolumeFlyout(false);
           }}
           className="h-9 px-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors flex items-center gap-1.5"
           title="Task View (All Tabs)"
@@ -140,7 +187,6 @@ export const Taskbar: React.FC = () => {
 
         {/* Running & Pinned Apps Dock */}
         <div className="flex items-center gap-1 h-full overflow-x-auto max-w-[50vw]">
-          {/* Pinned system apps and custom web apps */}
           {pinnedApps.map((app) => {
             const openWindows = windows.filter((w) => w.appId === app.id);
             const isOpen = openWindows.length > 0;
@@ -212,7 +258,7 @@ export const Taskbar: React.FC = () => {
       </div>
 
       {/* Right Section: System Tray & Clock */}
-      <div className="flex items-center gap-1.5 h-full">
+      <div className="flex items-center gap-1.5 h-full relative">
         {/* R1 Cloudflare Storage Monitor Chip */}
         <button
           onClick={() => openApp('settings')}
@@ -223,14 +269,104 @@ export const Taskbar: React.FC = () => {
           <span className="font-mono">{storageStats.percentage}% R1</span>
         </button>
 
-        {/* Volume Mute Toggle */}
-        <button
-          onClick={() => setVolumeMuted(!volumeMuted)}
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/70 rounded-lg transition-colors"
-          title="System Audio"
-        >
-          {volumeMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
-        </button>
+        {/* Master Sound & Volume Control Flyout Button */}
+        <div className="relative" ref={volumeFlyoutRef}>
+          <button
+            id="btn-taskbar-volume"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowVolumeFlyout(!showVolumeFlyout);
+            }}
+            className={`p-2 rounded-lg transition-colors flex items-center gap-1 ${
+              showVolumeFlyout
+                ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+            }`}
+            title={`Sound: ${soundSettings.isMuted ? 'Muted' : `${soundSettings.masterVolume}%`}`}
+          >
+            {getVolumeIcon()}
+            <span className="text-[10px] font-mono font-medium hidden md:inline text-slate-300">
+              {soundSettings.isMuted ? 'MUTE' : `${soundSettings.masterVolume}%`}
+            </span>
+          </button>
+
+          {/* Windows 11-style Quick Sound & Volume Flyout Panel */}
+          {showVolumeFlyout && (
+            <div
+              id="volume-flyout-panel"
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-0 bottom-12 mb-2 w-72 p-4 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl text-slate-100 animate-in fade-in zoom-in-95 space-y-3 z-[9999]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-600/20 text-blue-400 rounded-lg">
+                    <Headphones className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-white">Audio & Volume</h4>
+                    <p className="text-[10px] text-slate-400">Aura Stereo Web Audio</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleMute}
+                  className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                    soundSettings.isMuted
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {soundSettings.isMuted ? 'Unmute' : 'Mute'}
+                </button>
+              </div>
+
+              {/* Master Volume Slider */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    {getVolumeIcon()}
+                    <span>Master Output</span>
+                  </span>
+                  <span className="font-mono font-bold text-blue-400">
+                    {soundSettings.isMuted ? '0%' : `${soundSettings.masterVolume}%`}
+                  </span>
+                </div>
+                <input
+                  id="taskbar-volume-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={soundSettings.isMuted ? 0 : soundSettings.masterVolume}
+                  onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-slate-800"
+                />
+              </div>
+
+              {/* System Sound Chimes & Test Controls */}
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                <button
+                  id="btn-volume-test-sound"
+                  onClick={() => soundService.playTestChime(soundSettings.masterVolume)}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-300 rounded-xl text-[11px] font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <Play className="w-3 h-3 text-emerald-400" />
+                  <span>Test Audio Chime</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowVolumeFlyout(false);
+                    openApp('settings');
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                  title="More Sound Settings"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Wi-Fi indicator */}
         <div className="p-2 text-slate-400 hover:text-white rounded-lg hidden sm:block" title="Connected: Cloudflare Worker Gateway">
@@ -239,7 +375,10 @@ export const Taskbar: React.FC = () => {
 
         {/* Live Clock & Calendar */}
         <button
-          onClick={() => openApp('settings')}
+          onClick={() => {
+            setShowVolumeFlyout(false);
+            openApp('settings');
+          }}
           className="h-9 px-2.5 rounded-xl hover:bg-slate-800/70 flex flex-col items-end justify-center text-right transition-colors"
           title="Time and Calendar Settings"
         >

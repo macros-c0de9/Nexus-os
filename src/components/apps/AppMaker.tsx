@@ -136,7 +136,16 @@ export const AppMaker: React.FC = () => {
                   placeholder="e.g. Excalidraw Whiteboard, Notion, Spotify"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const text = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text');
+                    if (text) setTitle(text);
+                  }}
+                  className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all select-text"
                 />
               </div>
 
@@ -156,7 +165,16 @@ export const AppMaker: React.FC = () => {
                     placeholder="https://excalidraw.com"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const text = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text');
+                      if (text) setUrl(text);
+                    }}
+                    className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all select-text"
                   />
                 </div>
               </div>
