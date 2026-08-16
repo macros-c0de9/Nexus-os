@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="aura-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="aura-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#aura-bg)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="4" />
+  
+  <!-- Glowing central aura orb -->
+  <circle cx="256" cy="256" r="140" fill="url(#aura-glow)" opacity="0.25" filter="url(#blur)" />
+  
+  <!-- Desktop / OS Abstract Window Symbol -->
+  <rect x="116" y="126" width="280" height="190" rx="24" fill="#1e293b" stroke="#38bdf8" stroke-width="8" />
+  <circle cx="156" cy="162" r="8" fill="#ef4444" />
+  <circle cx="184" cy="162" r="8" fill="#f59e0b" />
+  <circle cx="212" cy="162" r="8" fill="#10b981" />
+  
+  <!-- Terminal Prompt inside window -->
+  <path d="M 160 215 L 185 235 L 160 255" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="205" y1="245" x2="245" y2="245" stroke="#a855f7" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Mobile & Desktop Taskbar Base Dock -->
+  <rect x="156" y="340" width="200" height="32" rx="16" fill="url(#aura-glow)" />
+  <circle cx="196" cy="356" r="6" fill="#ffffff" />
+  <circle cx="236" cy="356" r="6" fill="#ffffff" />
+  <circle cx="276" cy="356" r="6" fill="#ffffff" />
+  <circle cx="316" cy="356" r="6" fill="#ffffff" />
+</svg>

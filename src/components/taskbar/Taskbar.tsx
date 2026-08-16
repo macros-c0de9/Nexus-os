@@ -18,9 +18,14 @@ import {
   Headphones,
   Bell,
   Sliders,
-  Play
+  Play,
+  Download,
+  Smartphone,
+  Laptop,
+  CheckCircle2
 } from 'lucide-react';
 import { devicePermissions } from '../../services/devicePermissions';
+import { pwaService, PWAState } from '../../services/pwaService';
 
 export const Taskbar: React.FC = () => {
   const {
@@ -36,11 +41,13 @@ export const Taskbar: React.FC = () => {
     openApp,
     closeContextMenu,
     openContextMenu,
+    addNotification,
   } = useOS();
 
   const [timeStr, setTimeStr] = useState('');
   const [dateStr, setDateStr] = useState('');
   const [storageStats, setStorageStats] = useState(vfs.getStorageStats());
+  const [pwaState, setPwaState] = useState<PWAState>(pwaService.getState());
   
   // Sound Service state
   const [soundSettings, setSoundSettings] = useState(soundService.getSettings());
@@ -68,6 +75,10 @@ export const Taskbar: React.FC = () => {
       setSoundSettings(settings);
     });
 
+    const unsubPWA = pwaService.subscribe((state) => {
+      setPwaState(state);
+    });
+
     // Close flyout on outside click
     const handleGlobalClick = (e: MouseEvent) => {
       if (volumeFlyoutRef.current && !volumeFlyoutRef.current.contains(e.target as Node)) {
@@ -80,9 +91,19 @@ export const Taskbar: React.FC = () => {
       clearInterval(interval);
       unsubVfs();
       unsubSound();
+      unsubPWA();
       window.removeEventListener('mousedown', handleGlobalClick);
     };
   }, []);
+
+  const handleInstallClick = async () => {
+    const res = await pwaService.promptInstall();
+    if (res === 'accepted') {
+      addNotification('PWA Installed', 'AuraOS is now installing as a standalone desktop app!', 'success');
+    } else if (res === 'already_installed') {
+      addNotification('AuraOS Active', 'Running in standalone native window mode.', 'info');
+    }
+  };
 
   // Pinned taskbar apps
   const pinnedApps = allApps.filter((a) => a.isPinnedToTaskbar || a.isCustomApp);
@@ -372,6 +393,31 @@ export const Taskbar: React.FC = () => {
         <div className="p-2 text-slate-400 hover:text-white rounded-lg hidden sm:block" title="Connected: Cloudflare Worker Gateway">
           <Wifi className="w-3.5 h-3.5 text-emerald-400" />
         </div>
+
+        {/* PWA Install / Standalone Status Tray Button */}
+        <button
+          id="taskbar-pwa-install-btn"
+          onClick={handleInstallClick}
+          className={`h-9 px-2 rounded-xl flex items-center gap-1.5 transition-all text-xs ${
+            pwaState.isInstalled
+              ? 'text-emerald-400 hover:bg-slate-800/70'
+              : 'bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30'
+          }`}
+          title={
+            pwaState.isInstalled
+              ? `AuraOS Standalone App (${pwaState.platformName})`
+              : `Install AuraOS on ${pwaState.isIOS ? 'iPhone/iPad' : pwaState.isAndroid ? 'Android' : 'Desktop'}`
+          }
+        >
+          {pwaState.isInstalled ? (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden md:inline font-bold text-[11px]">Install App</span>
+            </>
+          )}
+        </button>
 
         {/* Live Clock & Calendar */}
         <button

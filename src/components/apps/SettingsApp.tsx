@@ -25,8 +25,17 @@ import {
   VolumeX,
   Volume1,
   Headphones,
-  Play
+  Play,
+  Download,
+  Laptop,
+  CheckCircle2,
+  Share2,
+  PlusSquare,
+  HelpCircle,
+  ExternalLink,
+  SmartphoneNfc
 } from 'lucide-react';
+import { pwaService, PWAState } from '../../services/pwaService';
 
 export const SettingsApp: React.FC = () => {
   const { settings, updateSettings, addNotification, openApp, snapWindow, windows } = useOS();
@@ -35,10 +44,15 @@ export const SettingsApp: React.FC = () => {
   const [wallpaperSuccess, setWallpaperSuccess] = useState(false);
   const [storageStats, setStorageStats] = useState(vfs.getStorageStats());
   const [soundSettings, setSoundSettings] = useState(soundService.getSettings());
+  const [pwaState, setPwaState] = useState<PWAState>(pwaService.getState());
 
   useEffect(() => {
     const unsub = soundService.subscribe((s) => setSoundSettings(s));
-    return unsub;
+    const unsubPWA = pwaService.subscribe((s) => setPwaState(s));
+    return () => {
+      unsub();
+      unsubPWA();
+    };
   }, []);
 
   const handleApplyCustomWallpaper = (e: React.FormEvent) => {
@@ -599,17 +613,142 @@ export const SettingsApp: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 5: Permissions & PWA */}
+        {/* Tab 5: Permissions & PWA Installation Center */}
         {activeTab === 'permissions' && (
           <div className="space-y-6 max-w-2xl">
             <div>
-              <h2 className="text-base font-bold text-white">Device Permissions & PWA Capabilities</h2>
+              <h2 className="text-base font-bold text-white">PWA & Progressive Web App Installation</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Manage hardware and browser feature access for AuraOS.
+                Install AuraOS as a native standalone application on Desktop (Windows/macOS/Linux) and Mobile phones (Android/iOS).
               </p>
             </div>
 
+            {/* PWA Hero Status Card */}
+            <div className="p-5 bg-gradient-to-tr from-slate-900 via-slate-900 to-blue-950/40 border border-blue-500/30 rounded-2xl space-y-4 shadow-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-900/50 flex-shrink-0">
+                    {pwaState.isIOS || pwaState.isAndroid ? (
+                      <Smartphone className="w-6 h-6" />
+                    ) : (
+                      <Laptop className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white">AuraOS App Status</h3>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          pwaState.isInstalled
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        {pwaState.isInstalled ? 'Installed (Standalone PWA)' : 'Browser Mode (Installable)'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Platform: <strong className="text-slate-200">{pwaState.platformName}</strong> &bull; Browser: <strong className="text-slate-200">{pwaState.browserName}</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-semibold block uppercase tracking-wider">Service Worker & Offline</span>
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Registered & Ready (Cache v3)
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-semibold block uppercase tracking-wider">Display Mode</span>
+                  <span className="text-xs font-semibold text-sky-400 mt-0.5 block">
+                    {pwaState.isInstalled ? 'Standalone Window Controls' : 'Web Viewport'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                {!pwaState.isInstalled ? (
+                  <button
+                    onClick={async () => {
+                      const res = await pwaService.promptInstall();
+                      if (res === 'accepted') {
+                        addNotification('PWA Installed', 'AuraOS is now installing!', 'success');
+                      } else if (res === 'ios_guide') {
+                        pwaService.openIOSGuide();
+                      } else if (res === 'already_installed') {
+                        addNotification('AuraOS Active', 'Already installed.', 'info');
+                      } else {
+                        addNotification('Install AuraOS', 'Click the install icon in your browser address bar (🖥️ or ⬇️)', 'info');
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-950 transition-all active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{pwaState.isIOS ? 'View iOS Add to Home Screen Guide' : 'Install AuraOS App Now'}</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-3.5 py-2 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>AuraOS is installed as a native app on this device.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Platform Guides */}
             <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Device Installation Guides</h3>
+
+              {/* Desktop Guide */}
+              <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                  <Laptop className="w-4 h-4 text-blue-400" />
+                  <span>Desktop (Windows, macOS, Linux, ChromeOS)</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  In <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>, click the <strong>Install icon (🖥️ or ⬇️)</strong> on the right side of the address bar, or click Menu &gt; <em>"Save and Share"</em> &gt; <em>"Install AuraOS"</em>.
+                </p>
+              </div>
+
+              {/* Android Guide */}
+              <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  <span>Android (Chrome, Samsung Internet, Firefox)</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Tap the <strong>"Install App"</strong> prompt banner, or tap the three dots <strong>(⋮)</strong> &gt; <strong>"Install app"</strong> / <strong>"Add to Home Screen"</strong>.
+                </p>
+              </div>
+
+              {/* iOS Guide */}
+              <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                    <Smartphone className="w-4 h-4 text-indigo-400" />
+                    <span>iPhone &amp; iPad (Apple Safari)</span>
+                  </div>
+                  <button
+                    onClick={() => pwaService.openIOSGuide()}
+                    className="text-xs text-blue-400 hover:text-blue-300 underline font-medium"
+                  >
+                    Open Visual Guide
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  In Safari, tap the <strong>Share</strong> button <Share2 className="w-3.5 h-3.5 inline text-blue-400 mx-0.5" /> &gt; Scroll down and tap <strong>"Add to Home Screen"</strong> <PlusSquare className="w-3.5 h-3.5 inline text-slate-300 mx-0.5" /> &gt; Tap <strong>"Add"</strong>.
+                </p>
+              </div>
+            </div>
+
+            {/* Hardware & Browser Permissions */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Device Hardware Permissions</h3>
+
               <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-slate-200 flex items-center gap-2">

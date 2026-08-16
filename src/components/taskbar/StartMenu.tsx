@@ -14,9 +14,13 @@ import {
   Sparkles,
   Settings,
   Terminal,
-  FolderKanban
+  FolderKanban,
+  Download,
+  Smartphone,
+  Laptop
 } from 'lucide-react';
 import { devicePermissions } from '../../services/devicePermissions';
+import { pwaService } from '../../services/pwaService';
 
 export const StartMenu: React.FC = () => {
   const {
@@ -27,6 +31,7 @@ export const StartMenu: React.FC = () => {
     openApp,
     openFileInDefaultApp,
     toggleTaskView,
+    addNotification,
   } = useOS();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,6 +176,21 @@ export const StartMenu: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1">
+          <button
+            onClick={async () => {
+              setStartMenuOpen(false);
+              const res = await pwaService.promptInstall();
+              if (res === 'accepted') {
+                addNotification('PWA Installed', 'AuraOS is now installed on your device!', 'success');
+              } else if (res === 'already_installed') {
+                addNotification('AuraOS Active', 'Running in standalone native window mode.', 'info');
+              }
+            }}
+            className="p-2 text-sky-400 hover:text-white hover:bg-blue-600/30 rounded-xl transition-colors"
+            title="Install AuraOS App (PWA)"
+          >
+            <Download className="w-4 h-4" />
+          </button>
           <button
             onClick={() => handleLaunch('settings')}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"

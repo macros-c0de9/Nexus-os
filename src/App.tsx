@@ -14,6 +14,7 @@ import { ContextMenu } from './components/common/ContextMenu';
 import { GestureOverlay } from './components/common/GestureOverlay';
 import { OrientationNotice } from './components/common/OrientationNotice';
 import { NotificationToast } from './components/common/NotificationToast';
+import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 
 function DesktopWorkspace() {
   return (
@@ -23,6 +24,9 @@ function DesktopWorkspace() {
     >
       {/* Mobile Horizontal Auto-Orientation Banner */}
       <OrientationNotice />
+
+      {/* PWA Smart Install Banner & Device Guides (Desktop, Android, iOS Safari) */}
+      <PWAInstallBanner />
 
       {/* Touch & Multi-Finger Gesture Handler (1-finger click, 2-finger context menu, 3-finger task view) */}
       <GestureOverlay>
